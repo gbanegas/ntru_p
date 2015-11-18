@@ -14,9 +14,9 @@ class Curve25519():
     BASE_R2Y = array.array('L',[5744, 8160848, 4790893, 13779497, 35730846, 12541209, 49101323, 30047407, 40071253, 6226132])
 
     def clamp(self, k):
-        k[31] &= 0x7F
-		k[31] |= 0x40
-		k[ 0] &= 0xF8
+        k[31] = k[31] & 0x7F
+        k[31] = k[31] | 0x40
+        k[0] = k[0] & 0xF8
 
     def unpack(self, dx, m):
         dx[0] = ((m[0] & 0xFF)) | ((m[1] & 0xFF))<<8 | (m[2] & 0xFF)<<16 | ((m[3] & 0xFF)& 3)<<24;
@@ -32,16 +32,17 @@ class Curve25519():
 
 
     def set(self, dx, n):
-        dx[0] = n
-        dx[1] = 0
-        dx[2] = 0
-        dx[3] = 0
-        dx[4] = 0
-        dx[5] = 0
-        dx[6] = 0
-        dx[7] = 0
-        dx[8] = 0
-        dx[9] = 0
+        dx.insert(0, n)
+        dx.insert(1, 0)
+        dx.insert(2, 0)
+        dx.insert(3, 0)
+        dx.insert(4, 0)
+        dx.insert(5, 0)
+        dx.insert(6, 0)
+        dx.insert(7, 0)
+        dx.insert(8, 0)
+        dx.insert(9, 0)
+
 
     def add(self, xy, x, y):
         xy[0] = x[0] + y[0]
@@ -80,7 +81,9 @@ class Curve25519():
         out[9] = ins[9]
 
     def mul(self, xy, x, y):
-        long t = (x[0]*y[8]) + (x[2]*y[6]) + (x[4]*y[4]) + (x[6]*y[2]) + (x[8]*y[0])+2*((x[1]*y[7])+(x[3]*y[5])+(x[5]*y[3])+(x[7]*y[1])) + 38*(x[9]*y[9])
+        t = (x[0]*y[8]) + (x[2]*y[6]) + (x[4]*y[4]) + (x[6]*y[2]) + (x[8]*y[0])
+        t2 =  2*((x[1]*y[7])+(x[3]*y[5])+(x[5]*y[3])+(x[7]*y[1])) + 38*(x[9]*y[9])
+        t = t + t2
         xy[8] = (t & ((1 << 26) - 1))
         t = (t >> 26)+(x[0]*y[9])+(x[1]*y[8])+(x[2]*y[7])+(x[3]*y[6]) + (x[4]*y[5]) + (x[5]*y[4])+(x[6]*y[3])+(x[7]*y[2])+(x[8]*y[1])+(x[9]*y[0])
         xy[9] = (t & ((1 << 25) - 1))
@@ -92,49 +95,50 @@ class Curve25519():
         xy[2] = (t & ((1 << 26) - 1))
         t = (t >> 26) + (x[0]*y[3]) + (x[1]*y[2]) + (x[2]*y[1]) +(x[3]*y[0]) + 19 * ((x[4]*y[9]) + (x[5]*y[8]) +(x[6]*y[7]) + (x[7]*y[6]) +(x[8]*y[5]) + (x[9]*y[4]))
         xy[3] = (t & ((1 << 25) - 1))
-        t = (t >> 25) + (x[0]*y[4]) + (x[2]*y[2]) + (x[4]*y[0]) + 19 *((x[6]*y[8]) + (x[8]*y[6])) + 2 * ((x[1]*y[3]) + (x[3]*y[1])) + 38 *((x[5]*y[9]) + (x[7]*y[7]) + (x[9]*y[5]));
-		xy[4] = (t & ((1 << 26) - 1))
-		t = (t >> 26) + (x[0]*y[5]) + (x[1]*y[4]) + (x[2]*y[3]) +(x[3]*y[2]) + (x[4]*y[1]) + (x[5]*y[0]) + 19 *((x[6]*y[9]) + (x[7]*y[8]) + (x[8]*y[7]) + (x[9]*y[6]))
-		xy[5] = (t & ((1 << 25) - 1))
-		t = (t >> 25) + (x[0]*y[6]) + (x[2]*y[4]) + (x[4]*y[2]) +(x[6]*y[0]) + 19 * (x[8]*y[8]) + 2 * ((x[1]*y[5]) +(x[3]*y[3]) + (x[5]*y[1])) + 38 *((x[7]*y[9]) + (x[9]*y[7]))
-		xy[6] = (t & ((1 << 26) - 1))
-		t = (t >> 26) + (x[0]*y[7]) + (x[1]*y[6]) + (x[2]*y[5]) +(x[3]*y[4]) + (x[4]*y[3]) + (x[5]*y[2]) +(x[6]*y[1]) + (x[7]*y[0]) + 19 * ((x[8]*y[9]) +(x[9]*y[8]))
-		xy[7] = (t & ((1 << 25) - 1))
-		t = (t >> 25) + xy[8]
-		xy[8] = (t & ((1 << 26) - 1))
+        t2 = 2 * ((x[1]*y[3]) + (x[3]*y[1])) + 38 *((x[5]*y[9]) + (x[7]*y[7]) + (x[9]*y[5]))
+        t = (t >> 25) + (x[0]*y[4]) + (x[2]*y[2]) + (x[4]*y[0]) + 19 *((x[6]*y[8]) + (x[8]*y[6])) + t2
+        xy[4] = (t & ((1 << 26) - 1))
+        t2 = (x[4]*y[1]) + (x[5]*y[0]) +  19 *((x[6]*y[9]) + (x[7]*y[8]) + (x[8]*y[7]) + (x[9]*y[6]))
+        t = (t >> 26) + (x[0]*y[5]) + (x[1]*y[4]) + (x[2]*y[3]) +(x[3]*y[2]) + t2
+        xy[5] = (t & ((1 << 25) - 1))
+        t = (t >> 25) + (x[0]*y[6]) + (x[2]*y[4]) + (x[4]*y[2]) +(x[6]*y[0]) + 19 * (x[8]*y[8]) + 2 * ((x[1]*y[5]) +(x[3]*y[3]) + (x[5]*y[1])) + 38 *((x[7]*y[9]) + (x[9]*y[7]))
+        xy[6] = (t & ((1 << 26) - 1))
+        t = (t >> 26) + (x[0]*y[7]) + (x[1]*y[6]) + (x[2]*y[5]) +(x[3]*y[4]) + (x[4]*y[3]) + (x[5]*y[2]) +(x[6]*y[1]) + (x[7]*y[0]) + 19 * ((x[8]*y[9]) +(x[9]*y[8]))
+        xy[7] = (t & ((1 << 25) - 1))
+        t = (t >> 25) + xy[8]
+        xy[8] = (t & ((1 << 26) - 1))
         xy[9] += (t >> 26)
         return xy
 
     def sqr(self, x2, x):
         t = (x[4]*x[4]) + 2 * ((x0*x[8]) + (x2*x6)) + 38 *(x[9]*x[9]) + 4 * ((x1*x[7]) + (x3*x5));
-		x2[8] = (t & ((1 << 26) - 1));
-		t = (t >> 26) + 2 * ((x0*x[9]) + (x1*x[8]) + (x2*x[7]) +(x3*x6) + (x[4]*x5));
-		x2[9] = (t & ((1 << 25) - 1));
-		t = 19 * (t >> 25) + (x0*x0) + 38 * ((x2*x[8]) + (x[4]*x6) + (x5*x5)) + 76 * ((x1*x[9])	+ (x3*x[7]));
-		x2[0] = (t & ((1 << 26) - 1));
-		t = (t >> 26) + 2 * (x0*x1) + 38 * ((x2*x[9]) +	(x3*x[8]) + (x[4]*x[7]) + (x5*x6));
-		x2[1] = (t & ((1 << 25) - 1));
-		t = (t >> 25) + 19 * (x6*x6) + 2 * ((x0*x2) +(x1*x1)) + 38 * (x[4]*x[8]) + 76 *((x3*x[9]) + (x5*x[7]));
-		x2[2] = (t & ((1 << 26) - 1));
-		t = (t >> 26) + 2 * ((x0*x3) + (x1*x2)) + 38 *((x[4]*x[9]) + (x5*x[8]) + (x6*x[7]));
-		x2[3] = (t & ((1 << 25) - 1));
-		t = (t >> 25) + (x2*x2) + 2 * (x0*x[4]) + 38 *((x6*x[8]) + (x[7]*x[7])) + 4 * (x1*x3) + 76 *(x5*x[9]);
-		x2[4] = (t & ((1 << 26) - 1));
-		t = (t >> 26) + 2 * ((x0*x5) + (x1*x[4]) + (x2*x3))+ 38 * ((x6*x[9]) + (x[7]*x[8]));
-		x2[5] = (t & ((1 << 25) - 1));
-		t = (t >> 25) + 19 * (x[8]*x[8]) + 2 * ((x0*x6) +(x2*x[4]) + (x3*x3)) + 4 * (x1*x5) +	76 * (x[7]*x[9]);
-		x2[6] = (t & ((1 << 26) - 1));
-		t = (t >> 26) + 2 * ((x0*x[7]) + (x1*x6) + (x2*x5) +(x3*x[4])) + 38 * (x[8]*x[9]);
-		x2[7] = (t & ((1 << 25) - 1));
-		t = (t >> 25) + x2.8;
-		x2[8] = (t & ((1 << 26) - 1));
-		x2[9] += (t >> 26);
-		return x2
+        x2[8] = (t & ((1 << 26) - 1));
+        t = (t >> 26) + 2 * ((x0*x[9]) + (x1*x[8]) + (x2*x[7]) +(x3*x6) + (x[4]*x5))
+        x2[9] = (t & ((1 << 25) - 1));
+        t = 19 * (t >> 25) + (x0*x0) + 38 * ((x2*x[8]) + (x[4]*x6) + (x5*x5)) + 76 * ((x1*x[9])	+ (x3*x[7]));
+        x2[0] = (t & ((1 << 26) - 1));
+        t = (t >> 26) + 2 * (x0*x1) + 38 * ((x2*x[9]) +	(x3*x[8]) + (x[4]*x[7]) + (x5*x6));
+        x2[1] = (t & ((1 << 25) - 1));
+        t = (t >> 25) + 19 * (x6*x6) + 2 * ((x0*x2) +(x1*x1)) + 38 * (x[4]*x[8]) + 76 *((x3*x[9]) + (x5*x[7]));
+        x2[2] = (t & ((1 << 26) - 1));
+        t = (t >> 26) + 2 * ((x0*x3) + (x1*x2)) + 38 *((x[4]*x[9]) + (x5*x[8]) + (x6*x[7]));
+        x2[3] = (t & ((1 << 25) - 1));
+        t = (t >> 25) + (x2*x2) + 2 * (x0*x[4]) + 38 *((x6*x[8]) + (x[7]*x[7])) + 4 * (x1*x3) + 76 *(x5*x[9]);
+        x2[4] = (t & ((1 << 26) - 1));
+        t = (t >> 26) + 2 * ((x0*x5) + (x1*x[4]) + (x2*x3))+ 38 * ((x6*x[9]) + (x[7]*x[8]));
+        x2[5] = (t & ((1 << 25) - 1));
+        t = (t >> 25) + 19 * (x[8]*x[8]) + 2 * ((x0*x6) +(x2*x[4]) + (x3*x3)) + 4 * (x1*x5) +	76 * (x[7]*x[9]);
+        x2[6] = (t & ((1 << 26) - 1));
+        t = (t >> 26) + 2 * ((x0*x[7]) + (x1*x6) + (x2*x5) +(x3*x[4])) + 38 * (x[8]*x[9]);
+        x2[7] = (t & ((1 << 25) - 1));
+        t = (t >> 25) + x2[8];
+        x2[8] = (t & ((1 << 26) - 1));
+        x2[9] += (t >> 26);
+        return x2
 
     def mul_small(self, xy, x, y):
-        long t;
 		t = (x[8]*y);
-		xy.[8] = (t & ((1 << 26) - 1));
+		xy[8] = (t & ((1 << 26) - 1));
 		t = (t >> 26) + (x[9]*y);
 		xy[9] = (t & ((1 << 25) - 1));
 		t = 19 * (t >> 25) + (x[0]*y);
@@ -173,12 +177,12 @@ class Curve25519():
 
     def mont_dbl(self, t1, t2, t3, t4, bx, bz):
         self.sqr(t1, t3)
-		self.sqr(t2, t4)
-		self.mul(bx, t1, t2)
-		self.sub(t2, t1, t2)
-		self.mul_small(bz, t2, 121665)
-		self.add(t1, t1, bz)
-		self.mul(bz, t1, t2)
+        self.sqr(t2, t4)
+        self.mul(bx, t1, t2)
+        self.sub(t2, t1, t2)
+        self.mul_small(bz, t2, 121665)
+        self.add(t1, t1, bz)
+        self.mul(bz, t1, t2)
 
     def recip(self, y, x, sqrtassist):
         t0 = array.array('L')
@@ -187,74 +191,92 @@ class Curve25519():
         t3 = array.array('L')
         t4 = array.array('L')
         ## the chain for x^(2^255-21) is straight from djb's implementation */
-		self.sqr(t1, x);#	#  2 == 2 * 1	*/
-		self.sqr(t2, t1);#	#  4 == 2 * 2	*/
-		self.sqr(t0, t2);#	#  8 == 2 * 4	*/
-		self.mul(t2, t0, x);#	#  9 == 8 + 1	*/
-		self.mul(t0, t2, t1);#	# 11 == 9 + 2	*/
-		self.sqr(t1, t0);#	# 22 == 2 * 11	*/
-		self.mul(t3, t1, t2);#	# 31 == 22 + 9	== 2^5   - 2^0	*/
-		self.sqr(t1, t3);#	# 2^6   - 2^1	*/
-		self.sqr(t2, t1);#	# 2^7   - 2^2	*/
-		self.sqr(t1, t2);#	# 2^8   - 2^3	*/
-		self.sqr(t2, t1);#	# 2^9   - 2^4	*/
-		self.sqr(t1, t2);#	# 2^10  - 2^5	*/
-		self.mul(t2, t1, t3);#	# 2^10  - 2^0	*/
-		self.sqr(t1, t2);#	# 2^11  - 2^1	*/
-		self.sqr(t3, t1);#	# 2^12  - 2^2	*/
+        self.sqr(t1, x);#	#  2 == 2 * 1	*/
+        self.sqr(t2, t1);#	#  4 == 2 * 2	*/
+        self.sqr(t0, t2);#	#  8 == 2 * 4	*/
+        self.mul(t2, t0, x);#	#  9 == 8 + 1	*/
+        self.mul(t0, t2, t1);#	# 11 == 9 + 2	*/
+        self.sqr(t1, t0);#	# 22 == 2 * 11	*/
+        self.mul(t3, t1, t2);#	# 31 == 22 + 9	== 2^5   - 2^0	*/
+        self.sqr(t1, t3);#	# 2^6   - 2^1	*/
+        self.sqr(t2, t1);#	# 2^7   - 2^2	*/
+        self.sqr(t1, t2);#	# 2^8   - 2^3	*/
+        self.sqr(t2, t1);#	# 2^9   - 2^4	*/
+        self.sqr(t1, t2);#	# 2^10  - 2^5	*/
+        self.mul(t2, t1, t3);#	# 2^10  - 2^0	*/
+        self.sqr(t1, t2);#	# 2^11  - 2^1	*/
+        self.sqr(t3, t1);#	# 2^12  - 2^2	*/
         for i in xrange(1, 5):
             self.sqr(t1, t3);
-			self.sqr(t3, t1);
+            self.sqr(t3, t1);
 
         self.mul(t1, t3, t2);	# 2^20  - 2^0	*/
-		self.sqr(t3, t1);	# 2^21  - 2^1	*/
-		self.sqr(t4, t3);	# 2^22  - 2^2	*/
-		for i in xrange(1, 10):
-			self.sqr(t3, t4);
-			self.sqr(t4, t3);
-	           # t4 */		# 2^40  - 2^20	*/
-		self.mul(t3, t4, t1);	# 2^40  - 2^0	*/
-		for  i in xrange(0, 5):
-			self.sqr(t1, t3);
-			self.sqr(t3, t1);
-		 # t3 */		# 2^50  - 2^10	*/
-		self.mul(t1, t3, t2);	# 2^50  - 2^0	*/
-		self.sqr(t2, t1);	# 2^51  - 2^1	*/
-		self.sqr(t3, t2);	# 2^52  - 2^2	*/
-		for i in xrange(1,25):
-			self.sqr(t2, t3);
-			self.sqr(t3, t2);
+        self.sqr(t3, t1);	# 2^21  - 2^1	*/
+        self.sqr(t4, t3);	# 2^22  - 2^2	*/
+        for i in xrange(1, 10):
+            self.sqr(t3, t4)
+            self.sqr(t4, t3)
+
+        self.mul(t3, t4, t1);	# 2^40  - 2^0	*/
+
+        for i in xrange(0, 5):
+            self.sqr(t1, t3);
+            self.sqr(t3, t1);
+
+
+        self.mul(t1, t3, t2);	# 2^50  - 2^0	*/
+        self.sqr(t2, t1);	# 2^51  - 2^1	*/
+        self.sqr(t3, t2);	# 2^52  - 2^2	*/
+        for i in xrange(1,25):
+            self.sqr(t2, t3);
+            self.sqr(t3, t2);
 		 # t3 */		# 2^100 - 2^50 */
-		self.mul(t2, t3, t1);	# 2^100 - 2^0	*/
-		self.sqr(t3, t2);	# 2^101 - 2^1	*/
-		self.sqr(t4, t3);	# 2^102 - 2^2	*/
-		for i in xrange(0,50):
+        self.mul(t2, t3, t1);	# 2^100 - 2^0	*/
+        self.sqr(t3, t2);	# 2^101 - 2^1	*/
+        self.sqr(t4, t3);	# 2^102 - 2^2	*/
+        for i in xrange(0,50):
 			self.sqr(t3, t4);
 			self.sqr(t4, t3);
-		 # t4 */		# 2^200 - 2^100 */
-		self.mul(t3, t4, t2);	# 2^200 - 2^0	*/
-		for i in xrange(0, 25):
+
+        self.mul(t3, t4, t2);	# 2^200 - 2^0	*/
+        for i in xrange(0, 25):
 			self.sqr(t4, t3);
 			self.sqr(t3, t4);
 		 # t3 */		# 2^250 - 2^50	*/
-		self.mul(t2, t3, t1);	# 2^250 - 2^0	*/
-		self.sqr(t1, t2);	# 2^251 - 2^1	*/
-		self.sqr(t2, t1);	# 2^252 - 2^2	*/
-		if (sqrtassist <> 0):
+        self.mul(t2, t3, t1);	# 2^250 - 2^0	*/
+        self.sqr(t1, t2);	# 2^251 - 2^1	*/
+        self.sqr(t2, t1);	# 2^252 - 2^2	*/
+        if (sqrtassist <> 0):
 			self.mul(y, x, t2);	# 2^252 - 3 */
-		else:
+        else:
 			self.sqr(t1, t2);	# 2^253 - 2^3	*/
 			self.sqr(t2, t1);	# 2^254 - 2^4	*/
 			self.sqr(t1, t2);	# 2^255 - 2^5	*/
 			self.mul(y, t1, t0);	# 2^255 - 21	*/
 
     def is_overflow(self, x):
-        return (((x[0] > P26-19)) && ((x[1] & x[3] & x[5] & x[7] & x[9]) == P25) && ((x[2] & x[4] & x[6] & x[8]) == P26)) || (x[9] > P25)
+        t = ((x[0] > P26-19))
+        t1 = ((x[1] & x[3] & x[5] & x[7] & x[9]) == P25)
+        t2 = (x[2] & x[4] & x[6] & x[8]) == P26
+        t3 = (x[9] > P25)
+        result =  (t and t1 and t2) or t3
+        return result
 
     def pack(self, x, m):
-        int ld = 0, ud = 0;
-		long t;
-		ld = (is_overflow(x)?1:0) - ((x[9] < 0)?1:0);
+        ld = 0
+        ud = 0
+        ld = 0
+        if is_overflow(x):
+            if (x[9] < 0):
+                ld = 0
+            else:
+                ld = 1
+        else:
+            if x[9] < 0:
+                ld = 1
+            else:
+                ld = 0
+
 		ud = ld * -(P25+1);
 		ld *= 19;
 		t = ld + x[0] + (x[1] << 26);
@@ -299,50 +321,82 @@ class Curve25519():
 		m[31] = (t >> 24);
 
     def is_negative(self, x):
-        return (int)(((self.is_overflow(x) || (x[9] < 0))?1:0) ^ (x[0] & 1))
+        if self.is_overflow(x) or x[9] < 0:
+            return int(1 & (x[0] & 1))
+        else:
+            return int(0 & (x[0] & 1))
+
 
     def cpy32(self, d, s):
-		for i in xrange(0, 32):
+        for i in xrange(0,32):
             d[i] = s[i]
 
     def mula_small(self, p, q, m, x, n, z):
 		v=0;
 		for i in xrange(0, n+1):
 			v+=(q[i+m] & 0xFF)+z*(x[i] & 0xFF);
-			p[i+m]=(byte)v;
+			p[i+m]=v;
 			v>>=8;
 
 		return v;
+
+    def div_mod(self,  q, r,  n,  d, t):
+        rn = 0
+        dt = ((d[t-1] & 0xFF) << 8)
+        if t > 1:
+            dt |= (d[t-2] & 0xFF)
+
+        while n >= t:
+            n -= 1
+            z = (rn << 16) | ((r[n] & 0xFF) << 8);
+            if (n>0):
+				z |= (r[n-1] & 0xFF);
+
+            z = z / dt
+            rn += self.mula_small(r,r, n-t+1, d, t, -z);
+            q[n-t+1] = ((z + rn) & 0xFF);
+            self.mula_small(r,r, n-t+1, d, t, -rn);
+            rn = (r[n] & 0xFF);
+            r[n] = 0;
+
+            r[t-1] = rn;
+
+    def numsize(self, x, n):
+        while n <> 0 and x[n] == 0:
+            n = n-1
+
+        return n+1
+
 
     def egcd32(self, x, y, a, b):
         bn = 32
         an = 0
         qn = 0
-
-
-		for i in xrange(0, 31):
+        for i in xrange(0, 31):
             x[i] = y[i] = 0;
-		x[0] = 1;
-		an = numsize(a, 32);
 
-		if an==0:
-			return y;
-		temp =[]
-		while (true) {
+        x[0] = 1;
+        an = self.numsize(a, 32);
+
+        if an==0:
+            return y;
+
+        temp = []
+        while (True):
 			qn = bn - an + 1;
-			divmod(temp, b, bn, a, an);
-			bn = numsize(b, bn);
-			if (bn==0)
+			self.div_mod(temp, b, bn, a, an);
+			bn = self.numsize(b, bn);
+			if (bn==0):
 				return x;
-			mula32(y, x, temp, qn, -1);
+			self.mula32(y, x, temp, qn, -1);
 
 			qn = an - bn + 1;
-			divmod(temp, a, an, b, bn);
-			an = numsize(a, an);
-			if (an==0)
+			self.div_mod(temp, a, an, b, bn);
+			an = self.numsize(a, an);
+			if (an==0):
 				return y;
-			mula32(x, y, temp, qn, -1);
-		}
+			self.mula32(x, y, temp, qn, -1);
+
 
     def keygen(self, P, s, k):
         self.clamp(k)
@@ -350,6 +404,22 @@ class Curve25519():
 
     def curve(self, Z, k, P):
         self.core(Z, None, k, P)
+
+    def sign(self, v, h, x, s):
+        tmp1 = []
+        tmp2 = []
+        w = 0
+        for i in xrange(0, 32):
+            v[i] = 0
+        i = self.mula_small(v, x, 0, h, 32, -1)
+        self.mula_small(v,v,0, ORDER, 32, ((15-v[31])/16))
+        self.mula32(tmp1, v, s, 32, 1)
+        self.div_mod(tmp2, tmp1, 64, ORDER, 32)
+        for i in xrange(0, 32):
+            v[i] = tmp1[i]
+            w |= v[i]
+
+        return (w <>  0)
 
     def core(self, Px, s, k, Gx):
 
@@ -360,7 +430,9 @@ class Curve25519():
         t4 = array.array('L')
 
         x = array.array('L', array.array('L'))
+        x.insert(0, array.array('L'))
         z = array.array('L', array.array('L'))
+        z.insert(0, array.array('L'))
 
         if Gx <> None:
             self.unpack(dx, Gx)
@@ -384,35 +456,35 @@ class Curve25519():
                 self.mont_dbl(t1, t2, t3, t4, bx, bz)
 
         recip(t1, z[0], 0);
-		mul(dx, x[0], t1);
-		pack(dx, Px);
+        mul(dx, x[0], t1);
+        pack(dx, Px);
 
         	# calculate s such that s abs(P) = G  .. assumes G is std base point */
-		if (s <> None):
-			self.x_to_y2(t2, t1, dx);	# t1 = Py^2  */
-			self.recip(t3, z[1], 0);	# where Q=P+G ... */
-			self.mul(t2, x[1], t3);	# t2 = Qx  */
-			self.add(t2, t2, dx);	# t2 = Qx + Px  */
-			t2[0] += 9 + 486662;	# t2 = Qx + Px + Gx + 486662  */
-			dx[0] -= 9;		# dx = Px - Gx  */
-			self.sqr(t3, dx);	# t3 = (Px - Gx)^2  */
-			self.mul(dx, t2, t3);	# dx = t2 (Px - Gx)^2  */
-			self.sub(dx, dx, t1);	# dx = t2 (Px - Gx)^2 - Py^2  */
-			dx[0] -= 39420360;	# dx = t2 (Px - Gx)^2 - Py^2 - Gy^2  */
-			self.mul(t1, dx, BASE_R2Y);	# t1 = -Py  */
-			if (is_negative(t1)!=0)	# sign is 1, so just copy  */
-				cpy32(s, k);
-			else			# sign is -1, so negate  */
-				mula_small(s, ORDER_TIMES_8, 0, k, 32, -1);
+        if (s <> None):
+            self.x_to_y2(t2, t1, dx);	# t1 = Py^2  */
+            self.recip(t3, z[1], 0);	# where Q=P+G ... */
+            self.mul(t2, x[1], t3);	# t2 = Qx  */
+            self.add(t2, t2, dx);	# t2 = Qx + Px  */
+            t2[0] += 9 + 486662;	# t2 = Qx + Px + Gx + 486662  */
+            dx[0] -= 9;		# dx = Px - Gx  */
+            self.sqr(t3, dx);	# t3 = (Px - Gx)^2  */
+            self.mul(dx, t2, t3);	# dx = t2 (Px - Gx)^2  */
+            self.sub(dx, dx, t1);	# dx = t2 (Px - Gx)^2 - Py^2  */
+            dx[0] -= 39420360;	# dx = t2 (Px - Gx)^2 - Py^2 - Gy^2  */
+            self.mul(t1, dx, BASE_R2Y);	# t1 = -Py  */
+            if (is_negative(t1)!=0):	# sign is 1, so just copy  */
+                self.cpy32(s, k);
+            else:
+                self.mula_small(s, ORDER_TIMES_8, 0, k, 32, -1);
 
 			# reduce s mod q * (is this needed?  do it just in case, it's fast anyway) */
 			#divmod((dstptr) t1, s, 32, order25519, 32);
 
 			# take reciprocal of s mod q */
-			temp1=[];
-			temp2=[];
-			temp3=[];
-			cpy32(temp1, ORDER);
-			cpy32(s, egcd32(temp2, temp3, s, temp1));
-			if ((s[31] & 0x80)!=0)
-				mula_small(s, s, 0, ORDER, 32, 1);
+            temp1=[];
+            temp2=[];
+            temp3=[];
+            self.cpy32(temp1, ORDER);
+            self.cpy32(s, egcd32(temp2, temp3, s, temp1));
+            if ((s[31] & 0x80)<>0):
+                self.mula_small(s, s, 0, ORDER, 32, 1);
